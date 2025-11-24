@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <title>Контроль вивчення англ. мови</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 20px;
+      text-align: center;
+      background: linear-gradient(135deg, #e3f2fd, #fce4ec);
+      min-height: 100vh;
+    }
+
+    .card {
+      padding: 50px;
+      border-radius: 20px;
+      border: none;
+      width: 350px;
+      margin: auto;
+      font-size: 32px;
+      font-weight: 600;
+      background: white;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+      transition: transform 0.25s ease, box-shadow 0.25s ease;
+    }
+    .card:hover {
+      transform: scale(1.04);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.22);
+    }
+
+    #stats {
+      margin-top: 20px;
+      display: flex;
+      justify-content: space-around;
+      font-size: 22px;
+      font-weight: bold;
+    }
+    #correct { color: #2e7d32; }
+    #wrong { color: #c62828; }
+
+    #progress {
+      margin: 15px 0;
+      font-size: 24px;
+      font-weight: bold;
+      color: #37474f;
+    }
+
+    #answer {
+      padding: 12px;
+      width: 260px;
+      font-size: 20px;
+      margin-top: 20px;
+      border: 2px solid #42a5f5;
+      border-radius: 8px;
+      transition: 0.3s;
+    }
+    #answer:focus {
+      border-color: #1e88e5;
+      box-shadow: 0 0 8px rgba(30,136,229,0.5);
+      outline: none;
+    }
+
+    /* Fade animation for word switching */
+    .fade {
+      animation: fadeIn(300) 0.5s ease;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    #modal {
+      position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%; background: rgba(0,0,0,0.6);
+      display: none; justify-content: center; align-items: center;
+      animation: fadeIn 0.4s ease;
+    }
+    #modal-content {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      width: 300px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      position: relative;
+      top: 0;
+      left: 0;
+    }
+    #close-modal {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background: #42a5f5;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: 0.25s;
+    }
+    #close-modal:hover {
+      background: #1e88e5;
+      transform: scale(1.05);
+    }
+</style>
+</head>
+<body>
+  <h2>Вивчення англійських слів</h2>
+
+  <div style="text-align:left; width:200px; margin:auto; margin-bottom:20px; font-size:20px;">
+    <b>Рівень складності</b><br>
+    <label><input type="radio" name="level" value="easy" checked> Початковий</label><br>
+    <label><input type="radio" name="level" value="medium"> Середній</label><br>
+    <label><input type="radio" name="level" value="hard"> Високий</label>
+  </div>
+
+  <div id="progress"></div>
+
+  <div class="card" id="word-card"></div>
+  <br>
+  <input type="text" id="answer" placeholder="Введіть переклад" />
+
+  <div id="stats">
+    <p>Вірно: <span id="correct">0</span></p>
+    <p>Невірно: <span id="wrong">0</span></p>
+  </div>
+
+  <div id="modal">
+    <div id="modal-content">
+      <h3>Рівень знань</h3>
+      <p id="result-text"></p>
+      <button id="close-modal">Закрити</button>
+    </div>
+  </div>
+
+<script>
+$(document).ready(function(){
+    let fullWords = [
+        {en: "apple", ua: "яблуко"}, {en: "book", ua: "книга"}, {en: "car", ua: "автомобіль"},
+        {en: "dog", ua: "собака"}, {en: "cat", ua: "кіт"}, {en: "sun", ua: "сонце"},
+        {en: "moon", ua: "місяць"}, {en: "water", ua: "вода"}, {en: "fire", ua: "вогонь"},
+        {en: "house", ua: "будинок"}, {en: "tree", ua: "дерево"}, {en: "road", ua: "дорога"},
+        {en: "sky", ua: "небо"}, {en: "grass", ua: "трава"}, {en: "milk", ua: "молоко"},
+        {en: "fish", ua: "риба"}, {en: "bread", ua: "хліб"}, {en: "chair", ua: "стілець"},
+        {en: "window", ua: "вікно"}, {en: "flower", ua: "квітка"}
+    ];
+
+    let used = [];
+    let words = [];
+
+    function applyDifficulty(){
+        const lvl = $("input[name='level']:checked").val();
+        if(lvl == 'easy') words = fullWords.slice(0, 10);
+        if(lvl == 'medium') words = fullWords.slice(0, 15);
+        if(lvl == 'hard') words = fullWords;
+    }
+
+    applyDifficulty();
+    $("input[name='level']").on('change', function(){ location.reload(); });
+    let correct = 0;
+    let wrong = 0;
+    let attempts = 0;
+
+    function getRandomWord(){
+        let index;
+        do {
+            index = Math.floor(Math.random()*words.length);
+        } while(used.includes(index));
+        used.push(index);
+        return words[index];
+    }
+
+    function updateProgress(){
+        $("#progress").text(`Слово ${attempts+1} з 10`);
+    }
+
+    let current = getRandomWord();
+    $("#word-card").text(current.en);
+    updateProgress();
+
+    $("#answer").on('keypress', function(e){
+        if(e.which === 13){ $("#word-card").click(); }
+    });
+
+    $("#word-card").on("click", function(){
+        let userAns = $("#answer").val().trim().toLowerCase();
+        attempts++;
+
+        if(userAns === current.ua){ correct++; }
+        else { wrong++; }
+
+        $("#correct").text(correct);
+        $("#wrong").text(wrong);
+
+        $("#answer").val("");
+
+        if(attempts >= 10){
+            let level = "Низький";
+            if(correct >= 8) level = "Високий";
+            else if(correct >= 5) level = "Середній";
+
+            $("#result-text").text(`Ваш рівень: ${level}`);
+            $("#modal").css("display","flex").hide().fadeIn(300);
+        }
+
+        if(attempts < 10){
+            current = getRandomWord();
+            $("#word-card").text(current.en);
+            updateProgress();
+        }
+    });
+
+    $("#close-modal").on("click", function(){
+        $("#modal").fadeOut(300)();
+    });
+});
+</script>
+
+</body>
+</html>
