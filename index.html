@@ -157,7 +157,20 @@ $(document).ready(function(){
     }
 
     applyDifficulty();
-    $("input[name='level']").on('change', function(){ location.reload(); });
+    $("input[name='level']").on('change', function(){ 
+        applyDifficulty(); 
+        used = [];
+        attempts = 0;
+        correct = 0;
+        wrong = 0;
+
+        $("#correct").text(0);
+        $("#wrong").text(0);
+
+        current = getRandomWord();
+        $("#word-card").text(current.en);
+        updateProgress();
+    });
     let correct = 0;
     let wrong = 0;
     let attempts = 0;
@@ -212,7 +225,7 @@ $(document).ready(function(){
     });
 
     $("#close-modal").on("click", function(){
-        $("#modal").fadeOut(300)();
+        $("#modal").fadeOut(300);
     });
 });
 </script>
